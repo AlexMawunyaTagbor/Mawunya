@@ -24,11 +24,13 @@ const backgrounds = [
     'url("files/hero-bg10.jpg")', 
     'url("files/hero-bg11.jpg")',
 ];
+
 // Preload hero background images
 backgrounds.forEach(url => {
     const img = new Image();
     img.src = url.slice(5, -2);
 });
+
 let currentBackground = 0;
 function changeBackground() {
     currentBackground = (currentBackground + 1) % backgrounds.length;
@@ -40,12 +42,14 @@ setInterval(changeBackground, 5000);
 const themeToggleBtn = document.getElementById('theme-toggle');
 const body = document.body;
 const savedTheme = localStorage.getItem('theme');
+
 if (savedTheme) {
     body.classList.add(savedTheme);
     if (savedTheme === 'dark-mode') {
         themeToggleBtn.innerHTML = '<i class="uil uil-sun"></i>';
     }
 }
+
 themeToggleBtn.addEventListener('click', () => {
     body.classList.toggle('dark-mode');
     const isDarkMode = body.classList.contains('dark-mode');
@@ -70,6 +74,7 @@ function closeMenu() {
     overlay.classList.remove('active');
     hamburger.setAttribute('aria-expanded', 'false'); 
 }
+
 hamburger.addEventListener('click', () => {
     navLinks.classList.toggle('active');
     hamburger.classList.toggle('active');
@@ -77,60 +82,88 @@ hamburger.addEventListener('click', () => {
     const isExpanded = hamburger.getAttribute('aria-expanded') === 'true';
     hamburger.setAttribute('aria-expanded', !isExpanded);
 });
+
 navItems.forEach(link => link.addEventListener('click', closeMenu));
 overlay.addEventListener('click', closeMenu);
 
-// Form Submission Handling
+// ======================================
+// Form Submission Handling (Modal Popup)
+// ======================================
 const contactForm = document.querySelector('.contact_form');
-const formStatusMessage = document.getElementById('form-status-message');
+const statusModal = document.getElementById('statusModal');
+const statusMessage = document.getElementById('form-status-message');
+const statusTitle = document.getElementById('statusModalTitle');
+const statusIcon = document.getElementById('statusModalIcon');
+const closeModalBtns = [
+    document.getElementById('statusModalClose'), 
+    document.getElementById('statusModalBtn')
+];
 
-contactForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const submitBtn = contactForm.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-
-    const formData = new FormData(contactForm);
-    const formUrl = contactForm.action;
-
-    try {
-        const response = await fetch(formUrl, {
-            method: 'POST',
-            body: formData,
-            headers: { 'Accept': 'application/json' }
-        });
-
-        if (response.ok) {
-            formStatusMessage.textContent = 'Message sent successfully! Thank you.';
-            formStatusMessage.classList.remove('error');
-            formStatusMessage.classList.add('success');
-            contactForm.reset();
-        } else {
-            const data = await response.json();
-            if (data.errors) {
-                formStatusMessage.textContent = data.errors.map(error => error.message).join(', ');
-            } else {
-                formStatusMessage.textContent = 'Oops! There was an error sending your message.';
-            }
-            formStatusMessage.classList.remove('success');
-            formStatusMessage.classList.add('error');
-        }
-    } catch (error) {
-        formStatusMessage.textContent = 'Network error. Please try again later.';
-        formStatusMessage.classList.remove('success');
-        formStatusMessage.classList.add('error');
-        console.error('Form submission error:', error);
-    } finally {
-        submitBtn.disabled = false;
-        formStatusMessage.style.opacity = '1';
-        formStatusMessage.style.visibility = 'visible';
-        setTimeout(() => {
-            formStatusMessage.style.opacity = '0';
-            formStatusMessage.style.visibility = 'hidden';
-            formStatusMessage.textContent = '';
-        }, 5000);
+function showStatusModal(isSuccess, message) {
+    if (isSuccess) {
+        statusTitle.textContent = "Success!";
+        statusIcon.innerHTML = `<i class="uil uil-check-circle" aria-hidden="true"></i>`;
+    } else {
+        statusTitle.textContent = "Oops!";
+        statusIcon.innerHTML = `<i class="uil uil-exclamation-circle" aria-hidden="true"></i>`;
     }
+    
+    statusMessage.textContent = message;
+    statusModal.classList.add('active');
+    statusModal.setAttribute('aria-hidden', 'false');
+}
+
+function hideStatusModal() {
+    statusModal.classList.remove('active');
+    statusModal.setAttribute('aria-hidden', 'true');
+}
+
+closeModalBtns.forEach(btn => {
+    if (btn) btn.addEventListener('click', hideStatusModal);
 });
+
+if (statusModal) {
+    statusModal.addEventListener('click', (e) => {
+        if (e.target === statusModal) hideStatusModal();
+    });
+}
+
+if (contactForm) {
+    contactForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const submitBtn = contactForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        const formData = new FormData(contactForm);
+        const formUrl = contactForm.action;
+
+        try {
+            const response = await fetch(formUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (response.ok) {
+                showStatusModal(true, 'Your message has been sent successfully! Thank you for reaching out.');
+                contactForm.reset();
+            } else {
+                const data = await response.json();
+                if (data.errors) {
+                    showStatusModal(false, data.errors.map(error => error.message).join(', '));
+                } else {
+                    showStatusModal(false, 'Oops! There was an error sending your message.');
+                }
+            }
+        } catch (error) {
+            showStatusModal(false, 'Network error. Please check your connection and try again.');
+            console.error('Form submission error:', error);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+}
 
 // ======================================
 // Modal & TWO independent sliders
@@ -153,7 +186,7 @@ const mediaContainer2 = document.getElementById('mediaSliderContainer2');
 // Helpers
 function clearContainer(container) {
     const slider = container.querySelector('.modal-media-slider');
-    slider.innerHTML = '';
+    if (slider) slider.innerHTML = '';
 }
 
 // Create a media element with optional description
@@ -220,8 +253,8 @@ function initSlider(container) {
     const prev = container.querySelector('.prev-button');
     const next = container.querySelector('.next-button');
 
-    prev.onclick = () => { current = (current - 1 + slides.length) % slides.length; update(); };
-    next.onclick = () => { current = (current + 1) % slides.length; update(); };
+    if (prev) prev.onclick = () => { current = (current - 1 + slides.length) % slides.length; update(); };
+    if (next) next.onclick = () => { current = (current + 1) % slides.length; update(); };
     update();
 }
 
@@ -274,9 +307,14 @@ function showProjectModal(e) {
     modalTitle.textContent = btn.getAttribute('data-title') || '';
 
     // Reset sections & media
-    [mediaContainer1, mediaContainer2].forEach(c => { c.style.display = 'none'; clearContainer(c); });
-    modalSection1.style.display = 'none';
-    modalSection2.style.display = 'none';
+    [mediaContainer1, mediaContainer2].forEach(c => { 
+        if (c) {
+            c.style.display = 'none'; 
+            clearContainer(c); 
+        }
+    });
+    if (modalSection1) modalSection1.style.display = 'none';
+    if (modalSection2) modalSection2.style.display = 'none';
 
     // Section 1 content
     const s1Title = btn.getAttribute('data-section1-title');
@@ -307,7 +345,7 @@ function showProjectModal(e) {
     if (media1Data) {
         try { media1 = JSON.parse(media1Data); } catch {}
     }
-    buildMedia(mediaContainer1, [...links, ...media1]);
+    if (mediaContainer1) buildMedia(mediaContainer1, [...links, ...media1]);
 
     // Media for Section 2
     let media2 = [];
@@ -315,7 +353,7 @@ function showProjectModal(e) {
     if (media2Data) {
         try { media2 = JSON.parse(media2Data); } catch {}
     }
-    buildMedia(mediaContainer2, media2);
+    if (mediaContainer2) buildMedia(mediaContainer2, media2);
 
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
@@ -328,9 +366,12 @@ viewDetailsButtons.forEach(button => {
 
 // Close modal
 function hideModal() {
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
 }
-closeButton.addEventListener('click', hideModal);
+
+if (closeButton) closeButton.addEventListener('click', hideModal);
 window.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
